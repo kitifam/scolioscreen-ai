@@ -136,8 +136,8 @@ const ResultPage = () => {
           return Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
         };
 
-        sAngle = calcAngle(backLms[LEFT_SHOULDER], backLms[RIGHT_SHOULDER]);
-        hAngle = calcAngle(backLms[LEFT_HIP], backLms[RIGHT_HIP]);
+        sAngle = calcAngle(backLms[LEFT_SHOULDER], backLms[RIGHT_SHOULDER]) * 2;
+        hAngle = calcAngle(backLms[LEFT_HIP], backLms[RIGHT_HIP]) * 2;
         spineDev = (sAngle * 0.5) + (hAngle * 0.5);
 
         // Risk Thresholds (Cobb Angle based)

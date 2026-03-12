@@ -100,8 +100,8 @@ const ScoliosisOverlay: React.FC<ScoliosisOverlayProps> = ({ imageSrc, landmarks
         return Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
       };
 
-      const shoulderAngle = calcHorizontalAngle(points.ls, points.rs);
-      const hipAngle = calcHorizontalAngle(points.lh, points.rh);
+      const shoulderAngle = calcHorizontalAngle(points.ls, points.rs) * 2;
+      const hipAngle = calcHorizontalAngle(points.lh, points.rh) * 2;
 
       const spineDev = (shoulderAngle * 0.5) + (hipAngle * 0.5);
       let riskScore = 0;

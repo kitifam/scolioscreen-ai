@@ -67,7 +67,7 @@ const AdamTestOverlay: React.FC<AdamTestOverlayProps> = ({ imageSrc, onAnalysisR
 
       const dy = (rightPoint.y - leftPoint.y) * canvas.height;
       const dx = (rightPoint.x - leftPoint.x) * canvas.width;
-      const angle = Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
+      const angle = Math.abs(Math.atan2(dy, dx) * (180 / Math.PI)) * 2;
       const roundedAngle = Math.round(angle * 10) / 10;
 
       const isAbnormal = roundedAngle >= 10;
