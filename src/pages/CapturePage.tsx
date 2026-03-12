@@ -181,20 +181,29 @@ const CapturePage = () => {
       return next;
     });
     sessionStorage.setItem('scolioscreen_back_landmarks', JSON.stringify(metrics.landmarks));
+    if (metrics.annotatedImage) {
+      sessionStorage.setItem('scolioscreen_annotated_back', metrics.annotatedImage);
+    }
     setPreviewImage(null);
     setCapturedLandmarks(null);
     setCurrentStep(1);
     toast({ title: t('photoSaved') as string });
   };
 
-  const handleAdamReady = (data: { angle: number; level: { th: string; en: string }; isAbnormal: boolean }) => {
+  const handleAdamReady = (data: { angle: number; level: { th: string; en: string }; isAbnormal: boolean; annotatedImage?: string }) => {
     // Save Adam metrics
-    sessionStorage.setItem('scolioscreen_adam_metrics', JSON.stringify(data));
+    sessionStorage.setItem('scolioscreen_adam_metrics', JSON.stringify({
+      angle: data.angle, level: data.level, isAbnormal: data.isAbnormal
+    }));
     
     // Save the array of images (Standing Back, Adam Test)
     const finalImages = [capturedImages[0], previewImage];
     sessionStorage.setItem('scolioscreen_images', JSON.stringify(finalImages));
     
+    if (data.annotatedImage) {
+      sessionStorage.setItem('scolioscreen_annotated_adam', data.annotatedImage);
+    }
+
     // Clean up state
     setPreviewImage(null);
     setCapturedLandmarks(null);

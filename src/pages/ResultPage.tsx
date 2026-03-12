@@ -43,6 +43,9 @@ const ResultPage = () => {
   const [adamLandmarks, setAdamLandmarks] = useState<NormalizedLandmark[] | null>(null);
   const [adamMetrics, setAdamMetrics] = useState<{ angle: number; level: { th: string; en: string }; isAbnormal: boolean } | null>(null);
 
+  const [annotatedBackView, setAnnotatedBackView] = useState<string | null>(null);
+  const [annotatedAdamView, setAnnotatedAdamView] = useState<string | null>(null);
+
   const [finalStandingMetrics, setFinalStandingMetrics] = useState<StandingMetrics | null>(null);
 
   useEffect(() => {
@@ -75,6 +78,12 @@ const ResultPage = () => {
 
         setBackViewImage(images[0] || null);
         setAdamViewImage(images[1] || null);
+
+        const annBackStr = sessionStorage.getItem('scolioscreen_annotated_back');
+        const annAdamStr = sessionStorage.getItem('scolioscreen_annotated_adam');
+        setAnnotatedBackView(annBackStr || null);
+        setAnnotatedAdamView(annAdamStr || null);
+
         const lmStr = sessionStorage.getItem('scolioscreen_back_landmarks');
         const adamLmStr = sessionStorage.getItem('scolioscreen_adam_landmarks');
         if (!lmStr) {
@@ -570,6 +579,29 @@ const ResultPage = () => {
       </header>
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-5">
+        
+        {/* Annotated Images */}
+        {(annotatedBackView || annotatedAdamView) && (
+          <div className={`grid ${annotatedBackView && annotatedAdamView ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+            {annotatedBackView && (
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-muted-foreground ml-1">{language === 'th' ? 'ท่าหันหลัง' : 'Back View'}</span>
+                <div className="aspect-[3/4] rounded-xl overflow-hidden border border-border/50 bg-black/5 relative">
+                  <img src={annotatedBackView} alt="Annotated Back View" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
+            {annotatedAdamView && (
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-muted-foreground ml-1">{language === 'th' ? 'ท่าก้มตัว' : 'Adam Test'}</span>
+                <div className="aspect-[3/4] rounded-xl overflow-hidden border border-border/50 bg-black/5 relative">
+                  <img src={annotatedAdamView} alt="Annotated Adam Test View" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Risk Score */}
         <Card className="border-border/50">
           <CardHeader className="pb-2 text-center">

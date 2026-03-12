@@ -11,6 +11,7 @@ export interface StandingMetrics {
   riskScore: number;
   riskLevel: { th: string, en: string };
   landmarks: NormalizedLandmark[]; // Keeping this for backward compatibility if needed
+  annotatedImage?: string;
 }
 
 interface ScoliosisOverlayProps {
@@ -42,10 +43,10 @@ const ScoliosisOverlay: React.FC<ScoliosisOverlayProps> = ({ imageSrc, landmarks
     riskLevel: { th: '', en: '' }
   });
 
-  // State for the 4 line endpoints (L/R Shoulder, L/R Hip)
   const [points, setPoints] = useState({
     ls: { x: 0.3, y: 0.4 }, rs: { x: 0.7, y: 0.4 },
-    lh: { x: 0.3, y: 0.65 }, rh: { x: 0.7, y: 0.65 }
+    lh: { x: 0.3, y: 0.65 }, rh: { x: 0.7, y: 0.65 },
+    st: { x: 0.5, y: 0.4 }, sb: { x: 0.5, y: 0.65 }
   });
 
   const [draggingPoint, setDraggingPoint] = useState<keyof typeof points | null>(null);
@@ -61,13 +62,16 @@ const ScoliosisOverlay: React.FC<ScoliosisOverlayProps> = ({ imageSrc, landmarks
           ls: { x: landmarks[LEFT_SHOULDER].x, y: landmarks[LEFT_SHOULDER].y },
           rs: { x: landmarks[RIGHT_SHOULDER].x, y: landmarks[RIGHT_SHOULDER].y },
           lh: { x: landmarks[LEFT_HIP].x, y: landmarks[LEFT_HIP].y },
-          rh: { x: landmarks[RIGHT_HIP].x, y: landmarks[RIGHT_HIP].y }
+          rh: { x: landmarks[RIGHT_HIP].x, y: landmarks[RIGHT_HIP].y },
+          st: { x: (landmarks[LEFT_SHOULDER].x + landmarks[RIGHT_SHOULDER].x) / 2, y: (landmarks[LEFT_SHOULDER].y + landmarks[RIGHT_SHOULDER].y) / 2 },
+          sb: { x: (landmarks[LEFT_HIP].x + landmarks[RIGHT_HIP].x) / 2, y: (landmarks[LEFT_HIP].y + landmarks[RIGHT_HIP].y) / 2 }
         });
       } else {
         // Fallback default positions if AI couldn't detect anything
         setPoints({
           ls: { x: 0.3, y: 0.4 }, rs: { x: 0.7, y: 0.4 },
-          lh: { x: 0.3, y: 0.65 }, rh: { x: 0.7, y: 0.65 }
+          lh: { x: 0.3, y: 0.65 }, rh: { x: 0.7, y: 0.65 },
+          st: { x: 0.5, y: 0.4 }, sb: { x: 0.5, y: 0.65 }
         });
       }
     }
@@ -172,10 +176,60 @@ const ScoliosisOverlay: React.FC<ScoliosisOverlayProps> = ({ imageSrc, landmarks
         ctx.fillText(label, x1 - 18, y1);
       };
 
+      const drawSpineLine = (p1: { x: number, y: number }, p2: { x: number, y: number }, label: string) => {
+        const x1 = p1.x * canvas.width;
+        const y1 = p1.y * canvas.height;
+        const x2 = p2.x * canvas.width;
+        const y2 = p2.y * canvas.height;
+
+        // Draw dashed line
+        ctx.beginPath();
+        ctx.setLineDash([8, 6]);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = LINE_COLOR;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw endpoints (knobs)
+        const drawKnob = (x: number, y: number) => {
+          ctx.beginPath();
+          ctx.arc(x, y, 10, 0, 2 * Math.PI);
+          ctx.fillStyle = KNOB_COLOR;
+          ctx.fill();
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        };
+
+        drawKnob(x1, y1);
+        drawKnob(x2, y2);
+
+        // Draw Label at midpoint
+        ctx.font = 'bold 14px sans-serif';
+        const textMetrics = ctx.measureText(label);
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        
+        // Background for text
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.roundRect(midX - textMetrics.width - 25, midY - 12, textMetrics.width + 12, 24, 4);
+        ctx.fill();
+
+        ctx.fillStyle = LINE_COLOR;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, midX - 18, midY);
+      };
+
       // Draw Shoulder Line
       drawLine(points.ls, points.rs, language === 'th' ? 'ระดับไหล่' : 'Shoulders');
       // Draw Hip Line
       drawLine(points.lh, points.rh, language === 'th' ? 'ระดับเอว' : 'Waist');
+      // Draw Spine Line
+      drawSpineLine(points.st, points.sb, language === 'th' ? 'กระดูกสันหลัง' : 'Spine');
 
     };
   }, [imageSrc, points, language]);
@@ -262,13 +316,17 @@ const ScoliosisOverlay: React.FC<ScoliosisOverlayProps> = ({ imageSrc, landmarks
       finalLandmarks[LEFT_HIP] = { ...finalLandmarks[LEFT_HIP], x: points.lh.x, y: points.lh.y };
       finalLandmarks[RIGHT_HIP] = { ...finalLandmarks[RIGHT_HIP], x: points.rh.x, y: points.rh.y };
 
+      const canvas = canvasRef.current;
+      const annotatedImage = canvas ? canvas.toDataURL('image/jpeg', 0.8) : undefined;
+
       onConfirm({
         sAngle: metrics.shoulderAngle,
         hAngle: metrics.hipAngle,
         spineDev: metrics.spineDev,
         riskScore: metrics.riskScore,
         riskLevel: metrics.riskLevel,
-        landmarks: finalLandmarks
+        landmarks: finalLandmarks,
+        annotatedImage
       });
     }
   };
@@ -281,12 +339,15 @@ const ScoliosisOverlay: React.FC<ScoliosisOverlayProps> = ({ imageSrc, landmarks
         ls: { x: landmarks[LEFT_SHOULDER].x, y: landmarks[LEFT_SHOULDER].y },
         rs: { x: landmarks[RIGHT_SHOULDER].x, y: landmarks[RIGHT_SHOULDER].y },
         lh: { x: landmarks[LEFT_HIP].x, y: landmarks[LEFT_HIP].y },
-        rh: { x: landmarks[RIGHT_HIP].x, y: landmarks[RIGHT_HIP].y }
+        rh: { x: landmarks[RIGHT_HIP].x, y: landmarks[RIGHT_HIP].y },
+        st: { x: (landmarks[LEFT_SHOULDER].x + landmarks[RIGHT_SHOULDER].x) / 2, y: (landmarks[LEFT_SHOULDER].y + landmarks[RIGHT_SHOULDER].y) / 2 },
+        sb: { x: (landmarks[LEFT_HIP].x + landmarks[RIGHT_HIP].x) / 2, y: (landmarks[LEFT_HIP].y + landmarks[RIGHT_HIP].y) / 2 }
       });
     } else {
       setPoints({
         ls: { x: 0.3, y: 0.4 }, rs: { x: 0.7, y: 0.4 },
-        lh: { x: 0.3, y: 0.65 }, rh: { x: 0.7, y: 0.65 }
+        lh: { x: 0.3, y: 0.65 }, rh: { x: 0.7, y: 0.65 },
+        st: { x: 0.5, y: 0.4 }, sb: { x: 0.5, y: 0.65 }
       });
     }
     setLocalConfirmed(false);

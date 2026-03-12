@@ -13,7 +13,7 @@ export interface AdamMetrics {
 
 interface AdamTestOverlayProps {
   imageSrc: string;
-  onAnalysisReady?: (data: { angle: number; level: { th: string; en: string }; isAbnormal: boolean }) => void;
+  onAnalysisReady?: (data: { angle: number; level: { th: string; en: string }; isAbnormal: boolean; annotatedImage?: string }) => void;
 }
 
 const KNOB_COLOR = '#2B2727';
@@ -227,10 +227,14 @@ const AdamTestOverlay: React.FC<AdamTestOverlayProps> = ({ imageSrc, onAnalysisR
   const handleConfirm = () => {
     setLocalConfirmed(true);
     if (onAnalysisReady) {
+      const canvas = canvasRef.current;
+      const annotatedImage = canvas ? canvas.toDataURL('image/jpeg', 0.8) : undefined;
+
       onAnalysisReady({
         angle: metrics.angle,
         level: metrics.level,
-        isAbnormal: metrics.isAbnormal
+        isAbnormal: metrics.isAbnormal,
+        annotatedImage
       });
     }
   };
